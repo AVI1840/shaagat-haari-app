@@ -1,0 +1,429 @@
+{
+  "schema_version": "1.0.0",
+  "policy_dataset": "Operation_Shaagat_HaAri_V1",
+  "calculations": [
+    {
+      "calculation_id": "CALC_SENIOR_GRANT",
+      "name": "Senior Citizen Emergency Grant (Age 67+)",
+      "description": "Fixed percentage of prior average wage from top 3 of 6 preceding months, capped at 134 NIS/day",
+      "applies_to": "senior_citizen_emergency_grant",
+      "inputs": [
+        {
+          "variable": "wage_months_preceding_6",
+          "type": "array_of_float",
+          "length": 6,
+          "description": "Salaried wages for each of the 6 months preceding cessation of work"
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "operation": "sort_descending",
+          "input": "wage_months_preceding_6",
+          "output": "sorted_wages",
+          "description": "Sort the 6 monthly wages in descending order"
+        },
+        {
+          "step": 2,
+          "operation": "select_top_n",
+          "input": "sorted_wages",
+          "n": 3,
+          "output": "top_3_months",
+          "description": "Select the 3 highest earning months"
+        },
+        {
+          "step": 3,
+          "operation": "sum",
+          "input": "top_3_months",
+          "output": "total_top_3",
+          "description": "Sum the 3 highest months"
+        },
+        {
+          "step": 4,
+          "operation": "divide",
+          "input": "total_top_3",
+          "divisor": 90,
+          "output": "average_daily_wage",
+          "description": "Divide total by 90 days (3 months x 30 days) to get average daily wage"
+        },
+        {
+          "step": 5,
+          "operation": "multiply",
+          "input": "average_daily_wage",
+          "multiplier": 0.75,
+          "output": "daily_grant_uncapped",
+          "description": "Multiply average daily wage by 75% payout rate"
+        },
+        {
+          "step": 6,
+          "operation": "min",
+          "input": ["daily_grant_uncapped", 134],
+          "output": "daily_grant_final",
+          "description": "Cap at maximum 134 NIS per day"
+        }
+      ],
+      "output": {
+        "variable": "daily_grant_final",
+        "type": "float",
+        "unit": "NIS_per_day",
+        "max_cap": 134
+      },
+      "example": {
+        "input_wages": [8000, 8200, 5000, 8500, 4000, 8100],
+        "top_3": [8500, 8200, 8100],
+        "total_top_3": 24800,
+        "average_daily_wage": 275.56,
+        "daily_grant_uncapped": 206.67,
+        "daily_grant_final": 134,
+        "explanation": "206.67 exceeds 134 NIS cap, so final daily payout is truncated to 134 NIS"
+      }
+    },
+    {
+      "calculation_id": "CALC_EMPLOYER_RESERVE_COMP",
+      "name": "Employer Compensation for Reserve Duty Social Contributions",
+      "description": "20% of average daily wage multiplied by reserve days in March 2026",
+      "applies_to": "employer_reserve_compensation",
+      "inputs": [
+        {
+          "variable": "average_daily_wage_3_months",
+          "type": "float",
+          "description": "Employee average daily wage over 3 months preceding reserve service"
+        },
+        {
+          "variable": "employee_reserve_days_march_2026",
+          "type": "integer",
+          "description": "Total verified reserve days in March 2026"
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "operation": "multiply",
+          "input": "average_daily_wage_3_months",
+          "multiplier": 0.20,
+          "output": "daily_compensation_rate",
+          "description": "Calculate 20% of average daily wage"
+        },
+        {
+          "step": 2,
+          "operation": "multiply",
+          "input": "daily_compensation_rate",
+          "multiplier_variable": "employee_reserve_days_march_2026",
+          "output": "total_employer_compensation",
+          "description": "Multiply daily rate by number of reserve days"
+        }
+      ],
+      "output": {
+        "variable": "total_employer_compensation",
+        "type": "float",
+        "unit": "NIS"
+      },
+      "formula": "total_employer_compensation = average_daily_wage_3_months * 0.20 * employee_reserve_days_march_2026"
+    },
+    {
+      "calculation_id": "CALC_OVERTIME_VALIDATION",
+      "name": "Overtime Compliance Validation",
+      "description": "Boolean validation of emergency overtime constraints from March 2-19, 2026",
+      "applies_to": "expanded_overtime_authorization",
+      "inputs": [
+        {
+          "variable": "overtime_weekly_extra_hours",
+          "type": "float",
+          "description": "Extra overtime hours in a given week"
+        },
+        {
+          "variable": "overtime_total_weekly_hours",
+          "type": "float",
+          "description": "Total hours (standard + overtime) in a given week"
+        },
+        {
+          "variable": "overtime_daily_hours",
+          "type": "float",
+          "description": "Total hours on a given day"
+        },
+        {
+          "variable": "overtime_monthly_extra_hours",
+          "type": "float",
+          "description": "Total overtime hours in the calendar month"
+        },
+        {
+          "variable": "employee_consent_overtime",
+          "type": "boolean",
+          "description": "Explicit employee consent for overtime"
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "operation": "boolean_and",
+          "conditions": [
+            { "variable": "overtime_weekly_extra_hours", "comparator": "<=", "value": 25 },
+            { "variable": "overtime_total_weekly_hours", "comparator": "<=", "value": 67 },
+            { "variable": "overtime_daily_hours", "comparator": "<=", "value": 14 },
+            { "variable": "overtime_monthly_extra_hours", "comparator": "<=", "value": 90 },
+            { "variable": "employee_consent_overtime", "comparator": "==", "value": true }
+          ],
+          "output": "overtime_compliant",
+          "description": "All constraints must be satisfied simultaneously"
+        }
+      ],
+      "output": {
+        "variable": "overtime_compliant",
+        "type": "boolean"
+      },
+      "constraints": {
+        "max_weekly_extra_hours": 25,
+        "max_total_weekly_hours": 67,
+        "max_daily_hours": 14,
+        "max_monthly_extra_hours": 90,
+        "employee_consent_required": true
+      },
+      "violation_action": "Flag employer for Ministry of Economy enforcement. Reject non-compliant hours from state-subsidized wage calculations."
+    },
+    {
+      "calculation_id": "CALC_NI_PREMIUM_LIABILITY",
+      "name": "National Insurance Premium Liability Routing During Chalath",
+      "description": "Determines who pays NI premiums based on chalath duration and unemployment status",
+      "applies_to": "emergency_unemployment_chalath",
+      "inputs": [
+        {
+          "variable": "chalath_months_continuous",
+          "type": "integer",
+          "description": "Number of full calendar months of continuous unpaid leave"
+        },
+        {
+          "variable": "receiving_unemployment_benefits",
+          "type": "boolean",
+          "description": "Whether applicant receives emergency unemployment"
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "operation": "conditional_route",
+          "conditions": [
+            {
+              "condition": "chalath_months_continuous <= 2",
+              "liability": "employer_direct_remittance",
+              "description": "First 2 full calendar months: employer pays minimum NI premium without deducting from absent employee"
+            },
+            {
+              "condition": "chalath_months_continuous > 2 AND receiving_unemployment_benefits == true",
+              "liability": "bituach_leumi_auto_deduct_from_payout",
+              "description": "Month 3+, receiving unemployment: NI auto-deducted from state disbursement"
+            },
+            {
+              "condition": "chalath_months_continuous > 2 AND receiving_unemployment_benefits == false",
+              "liability": "employee_direct_payment_portal",
+              "description": "Month 3+, not receiving unemployment: citizen pays directly"
+            }
+          ],
+          "output": "premium_liability_assignment"
+        }
+      ],
+      "output": {
+        "variable": "premium_liability_assignment",
+        "type": "enum",
+        "allowed_values": [
+          "employer_direct_remittance",
+          "bituach_leumi_auto_deduct_from_payout",
+          "employee_direct_payment_portal"
+        ]
+      }
+    },
+    {
+      "calculation_id": "CALC_UNEMPLOYMENT_STANDARD",
+      "name": "Standard Emergency Unemployment Disbursement",
+      "description": "Standard unemployment calculation with emergency exemptions applied",
+      "applies_to": "emergency_unemployment_chalath",
+      "inputs": [
+        {
+          "variable": "chalath_continuous_duration",
+          "type": "integer",
+          "description": "Total chalath days"
+        },
+        {
+          "variable": "permitted_labor_days",
+          "type": "integer",
+          "description": "Days worked during chalath (max 2)"
+        }
+      ],
+      "emergency_exemptions": {
+        "waiting_days_waived": true,
+        "waiting_days_standard": 5,
+        "waiting_days_applied": 0,
+        "vacation_exhaustion_waived": true,
+        "payment_starts_from": "day_1"
+      },
+      "deduction_for_permitted_labor": {
+        "description": "If permitted_labor_days > 0, pro-rated daily amount is deducted from aggregate unemployment disbursement",
+        "formula": "net_payout = gross_unemployment - (daily_rate * permitted_labor_days)"
+      },
+      "output": {
+        "variable": "net_unemployment_payout",
+        "type": "float",
+        "unit": "NIS"
+      }
+    },
+    {
+      "calculation_id": "CALC_DUAL_STATUS_DEDUCTION",
+      "name": "Dual Status Independent Income Deduction",
+      "description": "For dual-status workers: approve based on salaried parameters, then deduct declared independent income",
+      "applies_to": "emergency_unemployment_chalath",
+      "inputs": [
+        {
+          "variable": "independent_income_declared",
+          "type": "float",
+          "description": "Net independent revenue declared via CPA certification"
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "operation": "evaluate_salaried_eligibility",
+          "description": "Eligibility determined solely by salaried employment parameters"
+        },
+        {
+          "step": 2,
+          "operation": "subtract",
+          "input": "standard_unemployment_payout",
+          "subtrahend": "independent_income_declared",
+          "output": "adjusted_payout",
+          "description": "Deduct declared independent income from unemployment payout"
+        },
+        {
+          "step": 3,
+          "operation": "max",
+          "input": ["adjusted_payout", 0],
+          "output": "final_payout",
+          "description": "Ensure payout does not go negative"
+        }
+      ],
+      "required_verification": "cpa_certification_payload",
+      "output": {
+        "variable": "final_payout",
+        "type": "float",
+        "unit": "NIS"
+      }
+    },
+    {
+      "calculation_id": "CALC_SPOUSAL_ABSENCE",
+      "name": "Spousal Reserve Absence Allowance",
+      "description": "1-hour daily early departure without wage deduction",
+      "applies_to": "spousal_reserve_absence_allowance",
+      "output": {
+        "daily_early_departure_hours": 1,
+        "wage_deduction": false,
+        "description": "Strict 1-hour early departure daily without negative wage deduction"
+      }
+    },
+    {
+      "calculation_id": "CALC_SPOUSAL_LEAVE_TIER1",
+      "name": "Spousal Protected Leave Tier 1",
+      "description": "3 days paid leave for spouse reserve days 31-60",
+      "applies_to": "spousal_reserve_protected_leave",
+      "output": {
+        "granted_paid_leave_days": 3,
+        "deduction_prohibited_from": ["sick_leave", "vacation_accrual"],
+        "description": "3 days paid leave. Employer cannot deduct from sick or vacation banks."
+      }
+    },
+    {
+      "calculation_id": "CALC_SPOUSAL_LEAVE_TIER2",
+      "name": "Spousal Protected Leave Tier 2",
+      "description": "4 days paid leave for spouse reserve days 61-90",
+      "applies_to": "spousal_reserve_protected_leave",
+      "output": {
+        "granted_paid_leave_days": 4,
+        "deduction_prohibited_from": ["sick_leave", "vacation_accrual"],
+        "description": "4 days paid leave. Employer cannot deduct from sick or vacation banks."
+      }
+    },
+    {
+      "calculation_id": "CALC_MATERNITY_TRANSPORT",
+      "name": "Maternity Transport Reimbursement",
+      "description": "Reimbursement for licensed ambulance transport to hospital for delivery during operation",
+      "applies_to": "maternity_transport_reimbursement",
+      "output": {
+        "reimbursement_basis": "invoice_amount",
+        "authorized_providers": "any_ministry_of_transportation_licensed_ambulance",
+        "legacy_mda_monopoly_removed": true,
+        "description": "Full reimbursement based on transport provider invoice. Not limited to MDA."
+      }
+    },
+    {
+      "calculation_id": "CALC_PREGNANCY_PRESERVATION",
+      "name": "Pregnancy Preservation Continuity",
+      "description": "Continuity of Shmirat Herayon coverage during operational window",
+      "applies_to": "pregnancy_preservation_continuity",
+      "output": {
+        "coverage_status": "continuous",
+        "requirement": "provident_fund_deposits_maintained",
+        "description": "Coverage continues uninterrupted if provident fund deposits were maintained during eligibility period."
+      }
+    },
+    {
+      "calculation_id": "CALC_INCOME_SUPPORT",
+      "name": "Income Support (Haftachat Hachnasa) Fallback",
+      "description": "Secondary review for baseline poverty alleviation based on household asset tests",
+      "applies_to": "income_support_haftachat_hachnasa",
+      "output": {
+        "evaluation_basis": "household_asset_test",
+        "gender_thresholds": {
+          "female_income_support_age": 62,
+          "male_income_support_age": 67
+        },
+        "description": "Evaluated based on household assets rather than labor history. Gender-specific age thresholds apply."
+      }
+    },
+    {
+      "calculation_id": "CALC_DYNAMIC_AKSHARA",
+      "name": "Dynamic Akshara Threshold Computation",
+      "description": "Computes the required akshara months based on demographic flags",
+      "applies_to": "emergency_unemployment_chalath",
+      "inputs": [
+        {
+          "variable": "geospatial_evacuee_flag",
+          "type": "boolean"
+        },
+        {
+          "variable": "disability_status_indicator",
+          "type": "boolean"
+        },
+        {
+          "variable": "idf_discharged_status",
+          "type": "boolean"
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "operation": "conditional",
+          "conditions": [
+            {
+              "condition": "geospatial_evacuee_flag == true",
+              "result": 2,
+              "description": "Evacuee: threshold drops to 2 months"
+            },
+            {
+              "condition": "disability_status_indicator == true OR idf_discharged_status == true",
+              "result": 3,
+              "description": "PWD or discharged soldier: threshold drops to 3 months. 3 months military service auto-count toward akshara."
+            },
+            {
+              "condition": "default",
+              "result": 6,
+              "description": "Standard: 6 months out of preceding 18"
+            }
+          ],
+          "output": "dynamic_akshara_threshold"
+        }
+      ],
+      "output": {
+        "variable": "dynamic_akshara_threshold",
+        "type": "integer",
+        "base_period_months": 18
+      }
+    }
+  ]
+}

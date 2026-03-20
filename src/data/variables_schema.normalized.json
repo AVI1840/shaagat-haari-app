@@ -1,0 +1,319 @@
+{
+  "schema_version": "1.0.0",
+  "policy_dataset": "Operation_Shaagat_HaAri_V1",
+  "last_updated": "2026-03-17T00:00:00Z",
+  "variables": {
+    "applicant_age_decimal": {
+      "type": "float",
+      "description": "Exact age calculated as (claim_submission_date - date_of_birth) in decimal years",
+      "source": "population_and_immigration_authority_api",
+      "required": true,
+      "validation": {
+        "min": 0,
+        "max": 120
+      }
+    },
+    "applicant_gender": {
+      "type": "enum",
+      "allowed_values": ["M", "F"],
+      "description": "Biological sex as registered in Population Authority. Used for retirement age thresholds in income support fallback.",
+      "source": "population_and_immigration_authority_api",
+      "required": true
+    },
+    "applicant_date_of_birth": {
+      "type": "date",
+      "format": "ISO8601",
+      "description": "Exact date of birth for age calculation",
+      "source": "population_and_immigration_authority_api",
+      "required": true
+    },
+    "claim_submission_date": {
+      "type": "date",
+      "format": "ISO8601",
+      "description": "Date the citizen submits the eligibility claim",
+      "source": "user_input",
+      "required": true
+    },
+    "geospatial_evacuee_flag": {
+      "type": "boolean",
+      "description": "True if applicant residential address intersects NEMA northern border evacuation polygon",
+      "source": "nema_polygon_intersect_population_registry",
+      "required": true,
+      "default": false
+    },
+    "disability_status_indicator": {
+      "type": "boolean",
+      "description": "True if applicant holds active Person with Disabilities (PWD) status on claim date",
+      "source": "ministry_of_welfare_bituach_leumi_medical_db",
+      "required": true,
+      "default": false
+    },
+    "idf_discharged_status": {
+      "type": "boolean",
+      "description": "True if applicant completed mandatory IDF service within timeframe specified by Defense Service Law",
+      "source": "ministry_of_defense_manpower_directorate_api",
+      "required": true,
+      "default": false
+    },
+    "employment_classification": {
+      "type": "enum",
+      "allowed_values": ["salaried", "independent", "dual"],
+      "description": "Primary employment classification. Dual requires specialized branching.",
+      "source": "tax_authority_shaam_bituach_leumi_collections",
+      "required": true
+    },
+    "chalath_commencement_date": {
+      "type": "date",
+      "format": "ISO8601",
+      "description": "Effective date unpaid leave began. Must fall within operational window for emergency overrides.",
+      "source": "employer_payroll_feed_tofes_100",
+      "required_for": ["emergency_unemployment_chalath"],
+      "required": false
+    },
+    "chalath_termination_date": {
+      "type": "date",
+      "format": "ISO8601",
+      "description": "Date of return to active payroll. Null means continuously active, requires monthly re-validation.",
+      "source": "employer_payroll_feed_tofes_100",
+      "required": false,
+      "nullable": true
+    },
+    "chalath_continuous_duration": {
+      "type": "integer",
+      "description": "Calculated as chalath_termination_date - chalath_commencement_date in calendar days. Must be >= 14 for standard emergency unemployment.",
+      "source": "internal_engine_computation",
+      "required": false,
+      "computed": true,
+      "validation": {
+        "min": 0
+      }
+    },
+    "permitted_labor_days": {
+      "type": "integer",
+      "description": "Days worked during active chalath. Emergency framework allows up to 2 days without voiding continuous status.",
+      "source": "employer_payroll_feed_tofes_100",
+      "required": false,
+      "default": 0,
+      "validation": {
+        "min": 0,
+        "max": 2
+      }
+    },
+    "akshara_base_months": {
+      "type": "integer",
+      "description": "Number of distinct calendar months with NI contributions in the preceding 18-month reference period",
+      "source": "bituach_leumi_contributions_database",
+      "required_for": ["emergency_unemployment_chalath"],
+      "required": false,
+      "validation": {
+        "min": 0,
+        "max": 18
+      }
+    },
+    "dynamic_akshara_threshold": {
+      "type": "integer",
+      "description": "Dynamically computed threshold. Default 6. Becomes 3 if idf_discharged_status or disability_status_indicator. Becomes 2 if geospatial_evacuee_flag.",
+      "source": "internal_engine_computation",
+      "computed": true,
+      "default": 6,
+      "required": false
+    },
+    "maternity_protection_end": {
+      "type": "date",
+      "format": "ISO8601",
+      "description": "Statutory end of paid maternity plus 60-day protection window. Requires temporal freezing if chalath intersects.",
+      "source": "bituach_leumi_maternity_department_db",
+      "required": false,
+      "nullable": true
+    },
+    "spouse_reserve_days": {
+      "type": "integer",
+      "description": "Cumulative reserve duty days served by applicant's spouse/co-parent during operational period",
+      "source": "idf_reserve_forces_api",
+      "required": false,
+      "default": 0,
+      "validation": {
+        "min": 0
+      }
+    },
+    "child_age_minimum": {
+      "type": "float",
+      "description": "Age of youngest dependent child. Used for spousal reserve 1-hour absence allowance (child must be under 13).",
+      "source": "population_and_immigration_authority_api",
+      "required": false,
+      "nullable": true,
+      "validation": {
+        "min": 0
+      }
+    },
+    "tofes_100_submitted": {
+      "type": "boolean",
+      "description": "Whether employer has submitted Tofes 100 form via B2B API with precise leave dates",
+      "source": "bituach_leumi_employer_portal",
+      "required": true,
+      "default": false
+    },
+    "employment_service_registered": {
+      "type": "boolean",
+      "description": "Whether applicant is registered with Employment Service (Shirut HaTaasuka)",
+      "source": "employment_service_api",
+      "required_for": ["emergency_unemployment_chalath"],
+      "required": false,
+      "default": false
+    },
+    "social_contributions_maintained": {
+      "type": "boolean",
+      "description": "Whether employer maintained pension/provident/training fund contributions during reserve mobilization",
+      "source": "employer_payroll_api",
+      "required_for": ["employer_reserve_compensation"],
+      "required": false,
+      "default": false
+    },
+    "employee_reserve_days_march_2026": {
+      "type": "integer",
+      "description": "Total verified reserve days served by the employee specifically in March 2026",
+      "source": "idf_reserve_forces_api",
+      "required_for": ["employer_reserve_compensation"],
+      "required": false,
+      "default": 0
+    },
+    "average_daily_wage_3_months": {
+      "type": "float",
+      "description": "Employee average daily wage over 3 months preceding reserve service, used for employer compensation calc",
+      "source": "employer_payroll_api",
+      "required_for": ["employer_reserve_compensation"],
+      "required": false
+    },
+    "wage_months_preceding_6": {
+      "type": "array",
+      "items_type": "float",
+      "length": 6,
+      "description": "Array of 6 monthly salaried wages for the 6 months preceding cessation of work. Used for senior grant calculation.",
+      "source": "employer_payroll_api_tax_authority",
+      "required_for": ["senior_citizen_emergency_grant"],
+      "required": false
+    },
+    "employment_terminated_due_to_operation": {
+      "type": "boolean",
+      "description": "Whether employment was demonstrably terminated or suspended due to operational impact",
+      "source": "employer_payroll_feed_tofes_100",
+      "required_for": ["senior_citizen_emergency_grant"],
+      "required": false,
+      "default": false
+    },
+    "is_full_time_employee": {
+      "type": "boolean",
+      "description": "Whether applicant is a full-time employee. Required for spousal reserve absence allowance.",
+      "source": "employer_payroll_feed_tofes_100",
+      "required_for": ["spousal_reserve_absence_allowance"],
+      "required": false,
+      "default": false
+    },
+    "transport_provider_license_valid": {
+      "type": "boolean",
+      "description": "Whether the ambulance transport provider holds a valid Ministry of Transportation license",
+      "source": "ministry_of_transportation_license_api",
+      "required_for": ["maternity_transport_reimbursement"],
+      "required": false,
+      "default": false
+    },
+    "transported_via_licensed_ambulance": {
+      "type": "boolean",
+      "description": "Whether the pregnant woman was transported to hospital via a licensed ambulance during the operation",
+      "source": "user_input_with_invoice",
+      "required_for": ["maternity_transport_reimbursement"],
+      "required": false,
+      "default": false
+    },
+    "pregnancy_preservation_active": {
+      "type": "boolean",
+      "description": "Whether medical authorization for pregnancy preservation (Shmirat Herayon) is active during operational window",
+      "source": "medical_committee_documentation",
+      "required_for": ["pregnancy_preservation_continuity"],
+      "required": false,
+      "default": false
+    },
+    "provident_fund_deposits_maintained": {
+      "type": "boolean",
+      "description": "Whether employee maintained provident fund payments during eligibility period",
+      "source": "provident_fund_deposit_logs",
+      "required_for": ["pregnancy_preservation_continuity"],
+      "required": false,
+      "default": false
+    },
+    "independent_income_declared": {
+      "type": "float",
+      "description": "Net independent revenue declared via CPA certification during operational period. Used for dual-status deduction.",
+      "source": "cpa_certification_or_tax_authority",
+      "required_for": ["dual_status_deduction"],
+      "required": false,
+      "nullable": true
+    },
+    "cpa_certification_submitted": {
+      "type": "boolean",
+      "description": "Whether CPA/Tax Consultant certification declaring net independent revenue has been submitted",
+      "source": "user_upload",
+      "required_for": ["dual_status_deduction"],
+      "required": false,
+      "default": false
+    },
+    "overtime_weekly_extra_hours": {
+      "type": "float",
+      "description": "Overtime hours logged in a given week during emergency overtime window",
+      "source": "biometric_clock_in_ledger",
+      "required_for": ["expanded_overtime_authorization"],
+      "required": false
+    },
+    "overtime_total_weekly_hours": {
+      "type": "float",
+      "description": "Total hours (standard + overtime) logged in a given week",
+      "source": "biometric_clock_in_ledger",
+      "required_for": ["expanded_overtime_authorization"],
+      "required": false
+    },
+    "overtime_daily_hours": {
+      "type": "float",
+      "description": "Total hours logged on a given day",
+      "source": "biometric_clock_in_ledger",
+      "required_for": ["expanded_overtime_authorization"],
+      "required": false
+    },
+    "overtime_monthly_extra_hours": {
+      "type": "float",
+      "description": "Total overtime hours logged in the current calendar month",
+      "source": "biometric_clock_in_ledger",
+      "required_for": ["expanded_overtime_authorization"],
+      "required": false
+    },
+    "employee_consent_overtime": {
+      "type": "boolean",
+      "description": "Whether employee has given explicit consent for overtime. Cannot be unilaterally mandated by employer.",
+      "source": "employer_hr_system",
+      "required_for": ["expanded_overtime_authorization"],
+      "required": false,
+      "default": false
+    },
+    "applicant_is_alive": {
+      "type": "boolean",
+      "description": "Population registry alive status. If false, claim terminates immediately.",
+      "source": "population_and_immigration_authority_api",
+      "required": true,
+      "default": true
+    },
+    "chalath_months_continuous": {
+      "type": "integer",
+      "description": "Number of full calendar months of continuous unpaid leave. Used for NI premium liability routing.",
+      "source": "internal_engine_computation",
+      "computed": true,
+      "required": false,
+      "default": 0
+    },
+    "receiving_unemployment_benefits": {
+      "type": "boolean",
+      "description": "Whether applicant is currently receiving emergency unemployment disbursement. Used for NI premium liability routing.",
+      "source": "bituach_leumi_payments_db",
+      "required": false,
+      "default": false
+    }
+  }
+}

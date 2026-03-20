@@ -1,0 +1,444 @@
+{
+  "schema_version": "1.0.0",
+  "policy_dataset": "Operation_Shaagat_HaAri_V1",
+  "edge_cases": [
+    {
+      "edge_case_id": "EC001_MATERNITY_CHALATH_INTERSECTION",
+      "name": "Maternity Leave to Chalath Intersection",
+      "description": "Employee is furloughed during the 60-day post-maternity protection window",
+      "systemic_conflict": "Statutory labor law prohibits firing or furloughing for 60 days after paid maternity leave ends. Emergency doctrine allows the furlough but mandates a temporal freeze of the protection timer.",
+      "trigger_conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "maternity_protection_end", "comparator": "is_not_null", "value": true },
+          { "variable": "chalath_commencement_date", "comparator": "is_not_null", "value": true },
+          {
+            "timeline_comparison": {
+              "type": "date_within_window",
+              "date_variable": "chalath_commencement_date",
+              "window_end_variable": "maternity_protection_end",
+              "description": "Chalath starts before maternity protection period ends"
+            }
+          }
+        ]
+      },
+      "resolution": {
+        "action": "freeze_and_resume_timer",
+        "logic": [
+          {
+            "step": 1,
+            "operation": "calculate_remaining_protection_days",
+            "formula": "remaining_days = maternity_protection_end - chalath_commencement_date",
+            "description": "Calculate how many protection days remain when chalath begins"
+          },
+          {
+            "step": 2,
+            "operation": "freeze_protection_timer",
+            "description": "Protection timer is frozen for the entire duration of the chalath"
+          },
+          {
+            "step": 3,
+            "operation": "resume_protection_timer",
+            "formula": "new_protection_end = chalath_termination_date + remaining_days",
+            "description": "When chalath ends, remaining protection days resume from that date"
+          }
+        ],
+        "unemployment_claim": "process_normally",
+        "protection_status": "frozen_during_chalath",
+        "example": {
+          "maternity_return_date": "2026-02-15",
+          "maternity_protection_end": "2026-04-16",
+          "chalath_commencement_date": "2026-03-01",
+          "chalath_termination_date": "2026-03-15",
+          "remaining_protection_days_at_chalath_start": 46,
+          "new_protection_end": "2026-04-30",
+          "explanation": "Employee returned from maternity Feb 15, protection ends Apr 16. Chalath starts Mar 1 with 46 days remaining. Timer freezes during 15-day chalath. Resumes Mar 16, new protection end is Apr 30."
+        }
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": "CALC_UNEMPLOYMENT_STANDARD",
+        "required_documents": [
+          "tofes_100_employer_report",
+          "maternity_leave_documentation",
+          "employment_service_registration"
+        ],
+        "flags": ["maternity_protection_frozen", "protection_timer_extended"]
+      }
+    },
+    {
+      "edge_case_id": "EC002_INTERMITTENT_WORK_DURING_CHALATH",
+      "name": "Intermittent Minor Work During Continuous Chalath",
+      "description": "Employee returns for up to 2 days of work during active chalath without voiding continuous status",
+      "systemic_conflict": "Standard NI policy terminates unemployment eligibility immediately upon any paid work. Emergency override allows up to 2 days.",
+      "trigger_conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "chalath_continuous_duration", "comparator": ">=", "value": 14 },
+          { "variable": "permitted_labor_days", "comparator": ">", "value": 0 },
+          { "variable": "permitted_labor_days", "comparator": "<=", "value": 2 }
+        ]
+      },
+      "resolution": {
+        "action": "allow_with_deduction",
+        "logic": [
+          {
+            "step": 1,
+            "operation": "validate_permitted_days",
+            "condition": "permitted_labor_days <= 2",
+            "description": "Verify work days do not exceed 2-day emergency limit"
+          },
+          {
+            "step": 2,
+            "operation": "process_work_days_as_standard_wages",
+            "description": "The 2 days are processed as standard wages by the employer"
+          },
+          {
+            "step": 3,
+            "operation": "deduct_pro_rated_amount",
+            "formula": "deduction = daily_unemployment_rate * permitted_labor_days",
+            "description": "Pro-rated daily amount deducted from aggregate unemployment disbursement"
+          },
+          {
+            "step": 4,
+            "operation": "maintain_chalath_status",
+            "description": "Primary chalath status remains continuously active"
+          }
+        ],
+        "chalath_continuity": "maintained",
+        "claim_status": "active"
+      },
+      "result": {
+        "eligibility_status": "approved_with_deduction",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": "CALC_UNEMPLOYMENT_STANDARD",
+        "required_documents": [
+          "tofes_100_employer_report",
+          "employment_service_registration"
+        ],
+        "flags": ["intermittent_work_deduction_applied"]
+      }
+    },
+    {
+      "edge_case_id": "EC003_DUAL_EMPLOYMENT_PROCESSING",
+      "name": "Dual Employment Processing (Salaried + Independent)",
+      "description": "Individual furloughed from salaried position but continues independent contracting",
+      "systemic_conflict": "Standard algorithms would reject the claim due to active business tax file (Tik Atzmai). Emergency policy evaluates eligibility solely on salaried parameters.",
+      "trigger_conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "employment_classification", "comparator": "==", "value": "dual" }
+        ]
+      },
+      "resolution": {
+        "action": "split_evaluation",
+        "logic": [
+          {
+            "step": 1,
+            "operation": "evaluate_salaried_only",
+            "description": "Eligibility determined strictly and solely by salaried employment parameters"
+          },
+          {
+            "step": 2,
+            "operation": "provisional_approval",
+            "description": "Provisionally approve unemployment based on lost salary"
+          },
+          {
+            "step": 3,
+            "operation": "flag_for_reconciliation",
+            "flag": "independent_income_reconciliation",
+            "description": "Account flagged for independent income reconciliation"
+          },
+          {
+            "step": 4,
+            "operation": "require_cpa_certification",
+            "description": "Individual must upload CPA/Tax Consultant certification declaring net independent revenue"
+          },
+          {
+            "step": 5,
+            "operation": "deduct_independent_income",
+            "formula": "final_payout = unemployment_payout - declared_independent_profit",
+            "description": "Deduct declared independent profit from final Bituach Leumi payout"
+          }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved_with_deduction",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": "CALC_DUAL_STATUS_DEDUCTION",
+        "required_documents": [
+          "tofes_100_employer_report",
+          "employment_service_registration",
+          "cpa_certification_independent_revenue"
+        ],
+        "flags": ["dual_status", "independent_income_reconciliation_pending"]
+      }
+    },
+    {
+      "edge_case_id": "EC004_PRIVATE_AMBULANCE_MATERNITY",
+      "name": "Private Ambulance Maternity Evacuation (Monopoly Override)",
+      "description": "Pregnant woman transported by private licensed ambulance when MDA unavailable during operation",
+      "systemic_conflict": "Historical system hardcoded MDA as exclusive recipient for maternity transport reimbursement. Emergency amendment decouples from MDA monopoly.",
+      "trigger_conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "transported_via_licensed_ambulance", "comparator": "==", "value": true },
+          { "variable": "transport_provider_license_valid", "comparator": "==", "value": true }
+        ]
+      },
+      "resolution": {
+        "action": "accept_private_provider",
+        "logic": [
+          {
+            "step": 1,
+            "operation": "verify_license",
+            "description": "Query Ministry of Transportation license database for the private ambulance provider"
+          },
+          {
+            "step": 2,
+            "operation": "validate_invoice",
+            "description": "Validate transport provider invoice"
+          },
+          {
+            "step": 3,
+            "operation": "process_reimbursement",
+            "description": "Process reimbursement to mother or private company based on invoice"
+          }
+        ],
+        "mda_monopoly_override": true
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "maternity_transport_reimbursement",
+        "calculation_reference": "CALC_MATERNITY_TRANSPORT",
+        "required_documents": [
+          "transport_provider_invoice",
+          "ministry_of_transportation_license_verification"
+        ],
+        "flags": ["mda_monopoly_override"]
+      }
+    },
+    {
+      "edge_case_id": "EC005_TERMINAL_AKSHARA_FAILURE",
+      "name": "Terminal Failure to Meet Modified Akshara Constraints",
+      "description": "Applicant on valid 14-day chalath but fails all akshara thresholds (standard, PWD, evacuee)",
+      "systemic_conflict": "Hard denial would leave citizen with zero state support. Policy mandates automatic fallback routing.",
+      "trigger_conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "chalath_continuous_duration", "comparator": ">=", "value": 14 },
+          {
+            "operator": "OR",
+            "operands": [
+              {
+                "operator": "AND",
+                "operands": [
+                  { "variable": "geospatial_evacuee_flag", "comparator": "==", "value": true },
+                  { "variable": "akshara_base_months", "comparator": "<", "value": 2 }
+                ]
+              },
+              {
+                "operator": "AND",
+                "operands": [
+                  { "variable": "geospatial_evacuee_flag", "comparator": "==", "value": false },
+                  {
+                    "operator": "OR",
+                    "operands": [
+                      { "variable": "disability_status_indicator", "comparator": "==", "value": true },
+                      { "variable": "idf_discharged_status", "comparator": "==", "value": true }
+                    ]
+                  },
+                  { "variable": "akshara_base_months", "comparator": "<", "value": 3 }
+                ]
+              },
+              {
+                "operator": "AND",
+                "operands": [
+                  { "variable": "geospatial_evacuee_flag", "comparator": "==", "value": false },
+                  { "variable": "disability_status_indicator", "comparator": "==", "value": false },
+                  { "variable": "idf_discharged_status", "comparator": "==", "value": false },
+                  { "variable": "akshara_base_months", "comparator": "<", "value": 6 }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "resolution": {
+        "action": "fallback_route_to_income_support",
+        "logic": [
+          {
+            "step": 1,
+            "operation": "package_rejected_variables",
+            "description": "Package all application variables with rejection reason code"
+          },
+          {
+            "step": 2,
+            "operation": "post_to_haftachat_hachnasa",
+            "description": "Automatically POST payload to Income Support (Haftachat Hachnasa) module"
+          },
+          {
+            "step": 3,
+            "operation": "initiate_secondary_review",
+            "description": "Initiate automatic secondary review based on household asset tests"
+          }
+        ],
+        "fallback_target": "income_support_haftachat_hachnasa"
+      },
+      "result": {
+        "eligibility_status": "pending_secondary_review",
+        "benefit_type": "income_support_haftachat_hachnasa",
+        "calculation_reference": "CALC_INCOME_SUPPORT",
+        "required_documents": [
+          "household_asset_declaration",
+          "income_declaration"
+        ],
+        "flags": ["akshara_terminal_failure", "auto_routed_to_income_support"]
+      }
+    },
+    {
+      "edge_case_id": "EC006_PERMITTED_LABOR_EXCEEDED",
+      "name": "Permitted Labor Days Exceeded During Chalath",
+      "description": "Employee works more than 2 days during chalath, voiding the emergency override",
+      "systemic_conflict": "Emergency override allows max 2 days. Exceeding this reverts to standard NI rules where any work terminates unemployment.",
+      "trigger_conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "permitted_labor_days", "comparator": ">", "value": 2 }
+        ]
+      },
+      "resolution": {
+        "action": "void_chalath_continuity",
+        "logic": [
+          {
+            "step": 1,
+            "operation": "terminate_active_claim",
+            "description": "Active unemployment claim is terminated"
+          },
+          {
+            "step": 2,
+            "operation": "require_new_chalath_period",
+            "description": "Applicant must establish a new 14-day continuous chalath period to re-qualify"
+          }
+        ]
+      },
+      "result": {
+        "eligibility_status": "denied",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": null,
+        "required_documents": [],
+        "flags": ["permitted_labor_exceeded", "chalath_continuity_voided"]
+      }
+    },
+    {
+      "edge_case_id": "EC007_SPOUSAL_TERMINATION_ATTEMPT",
+      "name": "Employer Attempts Termination of Reservist Spouse Before Protection Expires",
+      "description": "Employer initiates termination of employee whose spouse was deployed, before June 30, 2026",
+      "systemic_conflict": "Statutory protection shields spouse from termination until June 30, 2026. Any termination attempt must be flagged.",
+      "trigger_conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "spouse_reserve_days", "comparator": ">", "value": 0 },
+          {
+            "timeline_comparison": {
+              "type": "date_before",
+              "date_variable": "claim_submission_date",
+              "reference_date": "2026-07-01",
+              "description": "Termination attempted before protection expires"
+            }
+          }
+        ]
+      },
+      "resolution": {
+        "action": "block_and_flag",
+        "logic": [
+          {
+            "step": 1,
+            "operation": "flag_termination_for_legal_review",
+            "description": "Automatically flag termination attempt for manual legal review"
+          },
+          {
+            "step": 2,
+            "operation": "block_tofes_100_status_change",
+            "description": "Block employer-initiated status change in Tofes 100 pipeline"
+          },
+          {
+            "step": 3,
+            "operation": "potential_sanction",
+            "description": "Employer may face sanctions for attempted illegal termination"
+          }
+        ]
+      },
+      "result": {
+        "eligibility_status": "requires_edge_case_handling",
+        "benefit_type": "spousal_termination_protection",
+        "calculation_reference": null,
+        "required_documents": [
+          "idf_deployment_records",
+          "employer_termination_notice"
+        ],
+        "flags": ["illegal_termination_attempt", "legal_review_required"]
+      }
+    },
+    {
+      "edge_case_id": "EC008_MEDICAL_COMMITTEE_ROUTING",
+      "name": "Medical Committee Physical vs Remote Evaluation Routing",
+      "description": "Claims requiring medical committee evaluation must route based on date and geographic risk",
+      "systemic_conflict": "Physical committees suspended initially, resumed March 6. High-risk zones maintain remote evaluation.",
+      "trigger_conditions": {
+        "operator": "OR",
+        "operands": [
+          {
+            "operator": "AND",
+            "operands": [
+              { "variable": "claim_submission_date", "comparator": "<", "value": "2026-03-06" }
+            ]
+          },
+          {
+            "operator": "AND",
+            "operands": [
+              { "variable": "claim_submission_date", "comparator": ">=", "value": "2026-03-06" },
+              { "variable": "geospatial_evacuee_flag", "comparator": "==", "value": true }
+            ]
+          }
+        ]
+      },
+      "resolution": {
+        "action": "route_to_remote_evaluation",
+        "logic": [
+          {
+            "step": 1,
+            "operation": "check_date",
+            "condition": "claim_submission_date < 2026-03-06",
+            "result": "remote_evaluation_mandatory",
+            "description": "Before March 6: all evaluations are remote (video/document-based)"
+          },
+          {
+            "step": 2,
+            "operation": "check_geographic_risk",
+            "condition": "claim_submission_date >= 2026-03-06 AND geospatial_evacuee_flag == true",
+            "result": "remote_evaluation_maintained",
+            "description": "After March 6 but in high-risk zone: remote evaluation continues"
+          },
+          {
+            "step": 3,
+            "operation": "default",
+            "condition": "claim_submission_date >= 2026-03-06 AND geospatial_evacuee_flag == false",
+            "result": "physical_evaluation_resumed",
+            "description": "After March 6 in non-risk zone: physical evaluation required"
+          }
+        ]
+      },
+      "result": {
+        "eligibility_status": "requires_edge_case_handling",
+        "benefit_type": "medical_committee_routing",
+        "calculation_reference": null,
+        "required_documents": [
+          "medical_committee_documentation"
+        ],
+        "flags": ["medical_committee_routing_required"]
+      }
+    }
+  ]
+}

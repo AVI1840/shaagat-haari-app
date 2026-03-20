@@ -1,0 +1,573 @@
+{
+  "schema_version": "1.0.0",
+  "policy_dataset": "Operation_Shaagat_HaAri_V1",
+  "meta_parameters": {
+    "temporal_bounds": {
+      "operation_start": "2026-03-01",
+      "operation_end": "2026-03-15",
+      "overtime_window_start": "2026-03-02",
+      "overtime_window_end": "2026-03-19",
+      "spousal_termination_protection_end": "2026-06-30",
+      "medical_committee_physical_resume_date": "2026-03-06"
+    },
+    "legislation_status": "emergency_provision"
+  },
+  "rules": [
+    {
+      "rule_id": "R001_ALIVE_CHECK",
+      "priority": 1,
+      "description": "Terminate immediately if applicant is flagged as deceased",
+      "benefit_type": null,
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_is_alive", "comparator": "==", "value": false }
+        ]
+      },
+      "result": {
+        "eligibility_status": "denied",
+        "benefit_type": "none",
+        "calculation_reference": null,
+        "required_documents": [],
+        "reason_code": "APPLICANT_DECEASED",
+        "explanation": "Claim terminated: applicant flagged as deceased in Population Registry."
+      }
+    },
+    {
+      "rule_id": "R002_SENIOR_CITIZEN_GRANT_ROUTE",
+      "priority": 2,
+      "description": "Route applicants aged 67+ to senior citizen emergency grant module instead of standard unemployment",
+      "benefit_type": "senior_citizen_emergency_grant",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": ">=", "value": 67 },
+          { "variable": "employment_terminated_due_to_operation", "comparator": "==", "value": true }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "senior_citizen_emergency_grant",
+        "calculation_reference": "CALC_SENIOR_GRANT",
+        "required_documents": [
+          "date_of_birth_verification_population_registry",
+          "tofes_100_demonstrating_operational_cessation"
+        ],
+        "reason_code": "SENIOR_GRANT_ELIGIBLE",
+        "explanation": "Applicant aged 67+ with employment terminated due to operation. Routed to senior citizen emergency grant."
+      }
+    },
+    {
+      "rule_id": "R003_SENIOR_NO_OPERATIONAL_IMPACT",
+      "priority": 3,
+      "description": "Senior applicant without demonstrated operational impact",
+      "benefit_type": "senior_citizen_emergency_grant",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": ">=", "value": 67 },
+          { "variable": "employment_terminated_due_to_operation", "comparator": "==", "value": false }
+        ]
+      },
+      "result": {
+        "eligibility_status": "denied",
+        "benefit_type": "senior_citizen_emergency_grant",
+        "calculation_reference": null,
+        "required_documents": [],
+        "reason_code": "SENIOR_NO_OPERATIONAL_IMPACT",
+        "explanation": "Applicant aged 67+ but employment was not terminated or suspended due to the operation."
+      }
+    },
+    {
+      "rule_id": "R010_TOFES_100_CHECK",
+      "priority": 10,
+      "description": "Verify employer submitted Tofes 100. If missing, suspend claim.",
+      "benefit_type": "emergency_unemployment_chalath",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": "<", "value": 67 },
+          { "variable": "tofes_100_submitted", "comparator": "==", "value": false }
+        ]
+      },
+      "result": {
+        "eligibility_status": "pending_secondary_review",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": null,
+        "required_documents": [
+          "tofes_100_employer_report"
+        ],
+        "reason_code": "PENDING_EMPLOYER_ACTION",
+        "explanation": "Employer has not yet submitted Tofes 100. Claim suspended pending employer action."
+      }
+    },
+    {
+      "rule_id": "R020_CHALATH_DURATION_CHECK",
+      "priority": 20,
+      "description": "Verify chalath duration meets 14-day minimum for Operation Shaagat HaAri",
+      "benefit_type": "emergency_unemployment_chalath",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": "<", "value": 67 },
+          { "variable": "tofes_100_submitted", "comparator": "==", "value": true },
+          { "variable": "chalath_continuous_duration", "comparator": "<", "value": 14 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "denied",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": null,
+        "required_documents": [],
+        "reason_code": "CHALATH_DURATION_INSUFFICIENT",
+        "explanation": "Chalath duration is less than 14 days. Ministry of Finance requires minimum 14 days for Operation Shaagat HaAri."
+      }
+    },
+    {
+      "rule_id": "R030_EVACUEE_AKSHARA",
+      "priority": 30,
+      "description": "Evacuee reduced akshara threshold: 2 months out of 18",
+      "benefit_type": "emergency_unemployment_chalath",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": "<", "value": 67 },
+          { "variable": "tofes_100_submitted", "comparator": "==", "value": true },
+          { "variable": "chalath_continuous_duration", "comparator": ">=", "value": 14 },
+          { "variable": "geospatial_evacuee_flag", "comparator": "==", "value": true },
+          { "variable": "akshara_base_months", "comparator": ">=", "value": 2 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": "CALC_UNEMPLOYMENT_STANDARD",
+        "required_documents": [
+          "tofes_100_employer_report",
+          "employment_service_registration",
+          "nema_geospatial_verification"
+        ],
+        "reason_code": "EVACUEE_REDUCED_THRESHOLD_MET",
+        "explanation": "Northern border evacuee with 2+ months akshara. Approved under reduced threshold."
+      }
+    },
+    {
+      "rule_id": "R031_EVACUEE_AKSHARA_FAIL",
+      "priority": 31,
+      "description": "Evacuee who still fails the reduced 2-month akshara threshold",
+      "benefit_type": "emergency_unemployment_chalath",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": "<", "value": 67 },
+          { "variable": "tofes_100_submitted", "comparator": "==", "value": true },
+          { "variable": "chalath_continuous_duration", "comparator": ">=", "value": 14 },
+          { "variable": "geospatial_evacuee_flag", "comparator": "==", "value": true },
+          { "variable": "akshara_base_months", "comparator": "<", "value": 2 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "denied",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": null,
+        "required_documents": [],
+        "reason_code": "EVACUEE_AKSHARA_INSUFFICIENT",
+        "explanation": "Northern border evacuee but fewer than 2 months akshara. Automatically routed to income support review.",
+        "fallback_action": "route_to_haftachat_hachnasa"
+      }
+    },
+    {
+      "rule_id": "R040_PWD_SOLDIER_AKSHARA",
+      "priority": 40,
+      "description": "PWD or discharged soldier reduced akshara threshold: 3 months out of 18",
+      "benefit_type": "emergency_unemployment_chalath",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": "<", "value": 67 },
+          { "variable": "tofes_100_submitted", "comparator": "==", "value": true },
+          { "variable": "chalath_continuous_duration", "comparator": ">=", "value": 14 },
+          { "variable": "geospatial_evacuee_flag", "comparator": "==", "value": false },
+          {
+            "operator": "OR",
+            "operands": [
+              { "variable": "disability_status_indicator", "comparator": "==", "value": true },
+              { "variable": "idf_discharged_status", "comparator": "==", "value": true }
+            ]
+          },
+          { "variable": "akshara_base_months", "comparator": ">=", "value": 3 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": "CALC_UNEMPLOYMENT_STANDARD",
+        "required_documents": [
+          "tofes_100_employer_report",
+          "employment_service_registration",
+          "ministry_of_defense_certification_or_disability_index"
+        ],
+        "reason_code": "PWD_SOLDIER_REDUCED_THRESHOLD_MET",
+        "explanation": "PWD or discharged soldier with 3+ months akshara. Approved under reduced threshold."
+      }
+    },
+    {
+      "rule_id": "R041_PWD_SOLDIER_AKSHARA_FAIL",
+      "priority": 41,
+      "description": "PWD or discharged soldier who fails the reduced 3-month akshara threshold",
+      "benefit_type": "emergency_unemployment_chalath",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": "<", "value": 67 },
+          { "variable": "tofes_100_submitted", "comparator": "==", "value": true },
+          { "variable": "chalath_continuous_duration", "comparator": ">=", "value": 14 },
+          { "variable": "geospatial_evacuee_flag", "comparator": "==", "value": false },
+          {
+            "operator": "OR",
+            "operands": [
+              { "variable": "disability_status_indicator", "comparator": "==", "value": true },
+              { "variable": "idf_discharged_status", "comparator": "==", "value": true }
+            ]
+          },
+          { "variable": "akshara_base_months", "comparator": "<", "value": 3 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "denied",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": null,
+        "required_documents": [],
+        "reason_code": "PWD_SOLDIER_AKSHARA_INSUFFICIENT",
+        "explanation": "PWD or discharged soldier but fewer than 3 months akshara. Automatically routed to income support review.",
+        "fallback_action": "route_to_haftachat_hachnasa"
+      }
+    },
+    {
+      "rule_id": "R050_STANDARD_AKSHARA",
+      "priority": 50,
+      "description": "Standard akshara threshold: 6 months out of 18",
+      "benefit_type": "emergency_unemployment_chalath",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": "<", "value": 67 },
+          { "variable": "tofes_100_submitted", "comparator": "==", "value": true },
+          { "variable": "chalath_continuous_duration", "comparator": ">=", "value": 14 },
+          { "variable": "geospatial_evacuee_flag", "comparator": "==", "value": false },
+          { "variable": "disability_status_indicator", "comparator": "==", "value": false },
+          { "variable": "idf_discharged_status", "comparator": "==", "value": false },
+          { "variable": "akshara_base_months", "comparator": ">=", "value": 6 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": "CALC_UNEMPLOYMENT_STANDARD",
+        "required_documents": [
+          "tofes_100_employer_report",
+          "employment_service_registration"
+        ],
+        "reason_code": "STANDARD_THRESHOLD_MET",
+        "explanation": "Standard worker with 6+ months akshara and 14+ day chalath. Approved for emergency unemployment."
+      }
+    },
+    {
+      "rule_id": "R051_STANDARD_AKSHARA_FAIL",
+      "priority": 51,
+      "description": "Standard worker who fails the 6-month akshara threshold with no demographic overrides",
+      "benefit_type": "emergency_unemployment_chalath",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": "<", "value": 67 },
+          { "variable": "tofes_100_submitted", "comparator": "==", "value": true },
+          { "variable": "chalath_continuous_duration", "comparator": ">=", "value": 14 },
+          { "variable": "geospatial_evacuee_flag", "comparator": "==", "value": false },
+          { "variable": "disability_status_indicator", "comparator": "==", "value": false },
+          { "variable": "idf_discharged_status", "comparator": "==", "value": false },
+          { "variable": "akshara_base_months", "comparator": "<", "value": 6 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "denied",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": null,
+        "required_documents": [],
+        "reason_code": "STANDARD_AKSHARA_INSUFFICIENT",
+        "explanation": "Fewer than 6 months akshara with no demographic overrides. Automatically routed to income support review.",
+        "fallback_action": "route_to_haftachat_hachnasa"
+      }
+    },
+    {
+      "rule_id": "R060_DUAL_STATUS_DEDUCTION",
+      "priority": 60,
+      "description": "Dual-status (salaried + independent) post-approval deduction flag",
+      "benefit_type": "emergency_unemployment_chalath",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "employment_classification", "comparator": "==", "value": "dual" }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved_with_deduction",
+        "benefit_type": "emergency_unemployment_chalath",
+        "calculation_reference": "CALC_DUAL_STATUS_DEDUCTION",
+        "required_documents": [
+          "tofes_100_employer_report",
+          "employment_service_registration",
+          "cpa_certification_independent_revenue"
+        ],
+        "reason_code": "DUAL_STATUS_INDEPENDENT_DEDUCTION",
+        "explanation": "Approved based on salaried parameters. Independent income will be deducted from final payout after CPA certification."
+      }
+    },
+    {
+      "rule_id": "R070_EMPLOYER_RESERVE_COMPENSATION",
+      "priority": 70,
+      "description": "Employer compensation for maintaining social contributions during employee reserve mobilization",
+      "benefit_type": "employer_reserve_compensation",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "employee_reserve_days_march_2026", "comparator": ">", "value": 0 },
+          { "variable": "social_contributions_maintained", "comparator": "==", "value": true }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "employer_reserve_compensation",
+        "calculation_reference": "CALC_EMPLOYER_RESERVE_COMP",
+        "required_documents": [
+          "payroll_api_provident_fund_deposits",
+          "idf_reserve_service_verification"
+        ],
+        "reason_code": "EMPLOYER_RESERVE_COMP_ELIGIBLE",
+        "explanation": "Employer maintained social contributions during employee reserve mobilization in March 2026."
+      }
+    },
+    {
+      "rule_id": "R080_SPOUSAL_ABSENCE_ALLOWANCE",
+      "priority": 80,
+      "description": "1-hour daily early departure for spouse of reservist with child under 13",
+      "benefit_type": "spousal_reserve_absence_allowance",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "spouse_reserve_days", "comparator": ">=", "value": 5 },
+          { "variable": "child_age_minimum", "comparator": "<", "value": 13 },
+          { "variable": "is_full_time_employee", "comparator": "==", "value": true }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "spousal_reserve_absence_allowance",
+        "calculation_reference": "CALC_SPOUSAL_ABSENCE",
+        "required_documents": [
+          "idf_deployment_records",
+          "population_registry_child_age"
+        ],
+        "reason_code": "SPOUSAL_ABSENCE_ELIGIBLE",
+        "explanation": "Spouse deployed 5+ consecutive days, child under 13, full-time employee. Entitled to 1-hour early departure daily."
+      }
+    },
+    {
+      "rule_id": "R081_SPOUSAL_PROTECTED_LEAVE_TIER1",
+      "priority": 81,
+      "description": "Spousal protected leave: 3 days for 31-60 reserve days",
+      "benefit_type": "spousal_reserve_protected_leave",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "spouse_reserve_days", "comparator": ">=", "value": 31 },
+          { "variable": "spouse_reserve_days", "comparator": "<=", "value": 60 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "spousal_reserve_protected_leave",
+        "calculation_reference": "CALC_SPOUSAL_LEAVE_TIER1",
+        "required_documents": [
+          "idf_deployment_records",
+          "employer_payroll_accrual_verification"
+        ],
+        "reason_code": "SPOUSAL_LEAVE_TIER1",
+        "explanation": "Spouse served 31-60 reserve days. Entitled to 3 days paid leave. Cannot be deducted from sick or vacation banks."
+      }
+    },
+    {
+      "rule_id": "R082_SPOUSAL_PROTECTED_LEAVE_TIER2",
+      "priority": 82,
+      "description": "Spousal protected leave: 4 days for 61-90 reserve days",
+      "benefit_type": "spousal_reserve_protected_leave",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "spouse_reserve_days", "comparator": ">=", "value": 61 },
+          { "variable": "spouse_reserve_days", "comparator": "<=", "value": 90 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "spousal_reserve_protected_leave",
+        "calculation_reference": "CALC_SPOUSAL_LEAVE_TIER2",
+        "required_documents": [
+          "idf_deployment_records",
+          "employer_payroll_accrual_verification"
+        ],
+        "reason_code": "SPOUSAL_LEAVE_TIER2",
+        "explanation": "Spouse served 61-90 reserve days. Entitled to 4 days paid leave. Cannot be deducted from sick or vacation banks."
+      }
+    },
+    {
+      "rule_id": "R090_MATERNITY_TRANSPORT_REIMBURSEMENT",
+      "priority": 90,
+      "description": "Maternity transport reimbursement for licensed ambulance during operation",
+      "benefit_type": "maternity_transport_reimbursement",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "transported_via_licensed_ambulance", "comparator": "==", "value": true },
+          { "variable": "transport_provider_license_valid", "comparator": "==", "value": true }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "maternity_transport_reimbursement",
+        "calculation_reference": "CALC_MATERNITY_TRANSPORT",
+        "required_documents": [
+          "transport_provider_invoice",
+          "ministry_of_transportation_license_verification"
+        ],
+        "reason_code": "MATERNITY_TRANSPORT_ELIGIBLE",
+        "explanation": "Transported via licensed ambulance during operation. MDA monopoly override applies. Reimbursement approved."
+      }
+    },
+    {
+      "rule_id": "R100_PREGNANCY_PRESERVATION",
+      "priority": 100,
+      "description": "Pregnancy preservation (Shmirat Herayon) continuity during operation",
+      "benefit_type": "pregnancy_preservation_continuity",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "pregnancy_preservation_active", "comparator": "==", "value": true },
+          { "variable": "provident_fund_deposits_maintained", "comparator": "==", "value": true }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "pregnancy_preservation_continuity",
+        "calculation_reference": "CALC_PREGNANCY_PRESERVATION",
+        "required_documents": [
+          "medical_committee_documentation",
+          "provident_fund_deposit_logs"
+        ],
+        "reason_code": "PREGNANCY_PRESERVATION_ELIGIBLE",
+        "explanation": "Active pregnancy preservation authorization with maintained provident fund deposits. Continuity of coverage confirmed."
+      }
+    },
+    {
+      "rule_id": "R101_PREGNANCY_PRESERVATION_NO_FUND",
+      "priority": 101,
+      "description": "Pregnancy preservation denied due to lapsed provident fund deposits",
+      "benefit_type": "pregnancy_preservation_continuity",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "pregnancy_preservation_active", "comparator": "==", "value": true },
+          { "variable": "provident_fund_deposits_maintained", "comparator": "==", "value": false }
+        ]
+      },
+      "result": {
+        "eligibility_status": "requires_edge_case_handling",
+        "benefit_type": "pregnancy_preservation_continuity",
+        "calculation_reference": null,
+        "required_documents": [
+          "medical_committee_documentation",
+          "provident_fund_deposit_logs"
+        ],
+        "reason_code": "PREGNANCY_PRESERVATION_FUND_LAPSED",
+        "explanation": "Pregnancy preservation authorization is active but provident fund deposits were not maintained. Requires manual review."
+      }
+    },
+    {
+      "rule_id": "R110_OVERTIME_VALIDATION",
+      "priority": 110,
+      "description": "Expanded overtime authorization validation during emergency window",
+      "benefit_type": "expanded_overtime_authorization",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "employee_consent_overtime", "comparator": "==", "value": true },
+          { "variable": "overtime_weekly_extra_hours", "comparator": "<=", "value": 25 },
+          { "variable": "overtime_total_weekly_hours", "comparator": "<=", "value": 67 },
+          { "variable": "overtime_daily_hours", "comparator": "<=", "value": 14 },
+          { "variable": "overtime_monthly_extra_hours", "comparator": "<=", "value": 90 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "expanded_overtime_authorization",
+        "calculation_reference": "CALC_OVERTIME_VALIDATION",
+        "required_documents": [
+          "biometric_clock_in_records",
+          "employee_consent_form"
+        ],
+        "reason_code": "OVERTIME_COMPLIANT",
+        "explanation": "Overtime hours within emergency expanded limits and employee consent obtained."
+      }
+    },
+    {
+      "rule_id": "R120_SPOUSAL_TERMINATION_PROTECTION",
+      "priority": 120,
+      "description": "Employment termination protection for spouses of reservists until June 30, 2026",
+      "benefit_type": "spousal_termination_protection",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "spouse_reserve_days", "comparator": ">", "value": 0 },
+          { "variable": "claim_submission_date", "comparator": "<=", "value": "2026-06-30" }
+        ]
+      },
+      "result": {
+        "eligibility_status": "approved",
+        "benefit_type": "spousal_termination_protection",
+        "calculation_reference": null,
+        "required_documents": [
+          "idf_deployment_records"
+        ],
+        "reason_code": "SPOUSAL_TERMINATION_PROTECTED",
+        "explanation": "Spouse was deployed during operation. Employee is protected from employer-initiated termination until June 30, 2026."
+      }
+    },
+    {
+      "rule_id": "R130_INCOME_SUPPORT_FALLBACK",
+      "priority": 130,
+      "description": "Fallback to income support (Haftachat Hachnasa) for applicants who fail all unemployment thresholds",
+      "benefit_type": "income_support_haftachat_hachnasa",
+      "conditions": {
+        "operator": "AND",
+        "operands": [
+          { "variable": "applicant_age_decimal", "comparator": "<", "value": 67 }
+        ]
+      },
+      "result": {
+        "eligibility_status": "pending_secondary_review",
+        "benefit_type": "income_support_haftachat_hachnasa",
+        "calculation_reference": "CALC_INCOME_SUPPORT",
+        "required_documents": [
+          "household_asset_declaration",
+          "income_declaration"
+        ],
+        "reason_code": "FALLBACK_INCOME_SUPPORT",
+        "explanation": "Applicant did not meet emergency unemployment thresholds. Application automatically forwarded to Income Support (Haftachat Hachnasa) for secondary review based on household asset tests.",
+        "gender_specific_notes": {
+          "female_over_62": "Women over 62 may qualify for age-based income support exemptions.",
+          "male_over_67": "Men over 67 are routed to senior citizen grant instead."
+        }
+      }
+    }
+  ]
+}

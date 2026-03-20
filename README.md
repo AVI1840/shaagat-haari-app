@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shaagat HaAri Rights Assistant
 
-## Getting Started
+Production-grade MVP for Israeli National Insurance eligibility support during Operation Shaagat HaAri (March 2026).
 
-First, run the development server:
+## Architecture
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The system uses a **deterministic rules engine** driven entirely by JSON policy files. No LLM decides eligibility.
+
+```
+src/
+  data/           # Normalized JSON policy datasets (source of truth)
+  engine/         # Pure TypeScript rules engine
+    rule-evaluator.ts       # Evaluates conditions from rules.normalized.json
+    timeline-evaluator.ts   # Date overlap, chalath duration, maternity freeze
+    calculation-service.ts  # Senior grant, employer comp, overtime validation
+    edge-case-handler.ts    # Maternity-chalath intersection, dual status, etc.
+    document-resolver.ts    # Maps document IDs to Hebrew labels
+    hebrew-translator.ts    # Translates engine output to citizen-friendly Hebrew
+    index.ts                # Main entry: validates with Zod, runs full pipeline
+  schemas/        # Zod schemas for CitizenProfile and EngineResult
+  store/          # Zustand wizard state with localStorage persistence
+  components/
+    wizard/       # Step-by-step Hebrew RTL wizard (one question per screen)
+    action-card/  # Final result card with status, docs, calculation, next steps
+  tests/          # Vitest test suite (16 scenarios)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## How It Works
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Citizen answers questions one at a time in Hebrew
+2. Wizard adapts path based on answers (age 67+ routes to senior grant, etc.)
+3. Engine validates input with Zod, computes timeline, evaluates edge cases, matches rules by priority
+4. Returns deterministic result: status, benefit type, calculation, documents, next action
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Policy Updates
 
-## Learn More
+All policy values live in `src/data/*.normalized.json`. To update:
 
-To learn more about Next.js, take a look at the following resources:
+1. Edit the relevant JSON file (rules, calculations, edge cases, or variables)
+2. Ensure cross-references are consistent (variable names, calculation IDs)
+3. Run `npx vitest run` to validate
+4. No code changes needed for threshold/date/formula updates
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Running
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run dev        # Development server
+npx vitest run     # Test suite
+npm run build      # Production build
+```
 
-## Deploy on Vercel
+## Outcomes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The engine produces one of: `approved`, `approved_with_deduction`, `requires_edge_case_handling`, `pending_secondary_review`, `denied`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Benefits Covered
+
+- Emergency unemployment (Chalath) with standard/evacuee/PWD/soldier thresholds
+- Senior citizen emergency grant (age 67+)
+- Employer reserve compensation
+- Spousal reserve absence and protected leave
+- Maternity transport reimbursement (MDA monopoly override)
+- Pregnancy preservation continuity
+- Expanded overtime authorization
+- Spousal termination protection
+- Income support fallback (Haftachat Hachnasa)
