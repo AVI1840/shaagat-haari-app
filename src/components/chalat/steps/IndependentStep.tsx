@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from "react";
 import { useChalatStore } from "@/store/chalat-store";
 import { Section, Choice, Btn, Field, Input, Check } from "../ui";
@@ -7,13 +7,13 @@ export function IndependentStep() {
   const { input, setFields, next } = useChalatStore();
   const [has, setHas] = useState(input.has_independent_income || false);
   const [income, setIncome] = useState(input.independent_monthly_income?.toString() || "");
-  const [form, setForm] = useState(input.has_bl_1503 || false);
+  const [form, setForm] = useState(input.has_bl_1510 || false);
 
   const go = () => {
     setFields({
       has_independent_income: has,
       independent_monthly_income: has ? (parseFloat(income) || null) : null,
-      has_bl_1503: has ? form : false,
+      has_bl_1510: has ? form : false,
     });
     next();
   };
@@ -31,7 +31,7 @@ export function IndependentStep() {
           <Field label='הכנסה חודשית לפי אישור רו"ח' id="ind-inc" hint='הכנסה נטו בש"ח לחודש 3.26 או 4.26'>
             <Input id="ind-inc" type="number" min={0} value={income} onChange={(e) => setIncome(e.target.value)} placeholder="0" />
           </Field>
-          <Check id="bl1503" label='צירפתי טופס בל/1503 עם אישור רו"ח או יועץ מס' checked={form} onChange={setForm} />
+          <Check id="bl1510" label='צירפתי טופס בל/1510 עם אישור רו"ח או יועץ מס' checked={form} onChange={setForm} />
         </div>
       )}
       <Btn onClick={go} />

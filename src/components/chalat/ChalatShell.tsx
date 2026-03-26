@@ -9,19 +9,21 @@ import { AksharaStep } from "./steps/AksharaStep";
 import { SpecialPopStep } from "./steps/SpecialPopStep";
 import { SpecialDocsStep } from "./steps/SpecialDocsStep";
 import { Tofes100Step } from "./steps/Tofes100Step";
-import { VacationStep } from "./steps/VacationStep";
 import { IndependentStep } from "./steps/IndependentStep";
-import { ReturningStep } from "./steps/ReturningStep";
+import { ActiveClaimStep } from "./steps/ActiveClaimStep";
+import { ExhaustedDaysStep } from "./steps/ExhaustedDaysStep";
+import { KlaviaStep } from "./steps/KlaviaStep";
 import { ChalatResultView } from "./ChalatResult";
 import { FeedbackModal } from "./FeedbackModal";
 
 const STEPS: Record<string, React.ComponentType> = {
   welcome: WelcomeStep, dates: DatesStep, reason: ReasonStep,
   akshara: AksharaStep, special_pop: SpecialPopStep, special_docs: SpecialDocsStep,
-  tofes100: Tofes100Step, vacation: VacationStep, independent: IndependentStep,
-  returning: ReturningStep, result: ChalatResultView,
+  tofes100: Tofes100Step, independent: IndependentStep,
+  active_claim: ActiveClaimStep, exhausted_days: ExhaustedDaysStep, klavia: KlaviaStep,
+  result: ChalatResultView,
 };
-const TOTAL = 9;
+const TOTAL = 8;
 
 export function ChalatShell({ forceMode }: { forceMode?: "citizen" | "clerk" }) {
   const step = useChalatStore((s) => s.step);
@@ -59,10 +61,10 @@ export function ChalatShell({ forceMode }: { forceMode?: "citizen" | "clerk" }) 
               <span className="text-[#0c3058] font-bold text-[10px] leading-tight text-center">ב&quot;ל</span>
             </div>
             <div>
-              <h1 className="text-white text-lg font-bold leading-tight">
+              <h1 className="text-white text-base sm:text-lg font-bold leading-tight">
                 {isClerk ? "כלי סיוע לפקיד — דמי אבטלה הוראת שעה" : "בדיקת זכאות לדמי אבטלה — הוראת שעה"}
               </h1>
-              <p className="text-[#8bb8e8] text-sm mt-0.5">מבצע שאגת הארי | 28.2.26 — 14.4.26</p>
+              <p className="text-[#8bb8e8] text-xs sm:text-sm mt-0.5">מבצע שאגת הארי | 28.2.26 — 14.4.26</p>
             </div>
           </div>
         </div>

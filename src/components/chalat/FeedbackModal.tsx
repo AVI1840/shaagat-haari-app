@@ -85,7 +85,7 @@ export function FeedbackModal({ open, onClose }: Props) {
 
   return (
     <dialog ref={ref} onClose={onClose}
-      className="fixed inset-0 z-[100] m-auto w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg border border-black/10 shadow-xl bg-white p-0 backdrop:bg-black/40"
+      className="fixed inset-0 z-[100] m-auto w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg border border-black/10 shadow-xl bg-white p-0 backdrop:bg-black/40 sm:max-h-[90vh] sm:rounded-lg open:flex open:flex-col"
       dir="rtl">
       <div className="p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-black/10 pb-3">
