@@ -8,12 +8,12 @@ export function ActiveClaimStep() {
 
   return (
     <Section
-      question="האם יש לך תביעת אבטלה פעילה כרגע?"
-      hint="כלומר, האם אתה מקבל/ת דמי אבטלה כעת או קיבלת ב-4 השנים האחרונות והגשת תביעה חדשה?"
+      question="האם אושרה לך תביעת אבטלה בשנה האחרונה?"
+      hint="כלומר, האם אושרה לך תביעת אבטלה בשנה האחרונה? (מאפריל 2025 ועד היום)"
       legend="תביעה פעילה"
     >
-      <Choice label="כן, יש לי תביעת אבטלה פעילה" onClick={() => pick(true)} />
-      <Choice label="לא, אני מגיש/ה תביעה חדשה" onClick={() => pick(false)} />
+      <Choice label="כן, אושרה לי תביעת אבטלה בשנה האחרונה" onClick={() => pick(true)} />
+      <Choice label="לא" onClick={() => pick(false)} />
     </Section>
   );
 }

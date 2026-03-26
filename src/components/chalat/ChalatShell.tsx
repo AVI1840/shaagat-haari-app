@@ -13,6 +13,8 @@ import { IndependentStep } from "./steps/IndependentStep";
 import { ActiveClaimStep } from "./steps/ActiveClaimStep";
 import { ExhaustedDaysStep } from "./steps/ExhaustedDaysStep";
 import { KlaviaStep } from "./steps/KlaviaStep";
+import { Under40ReturningStep } from "./steps/Under40ReturningStep";
+import { NewClaimStep } from "./steps/NewClaimStep";
 import { ChalatResultView } from "./ChalatResult";
 import { FeedbackModal } from "./FeedbackModal";
 
@@ -21,6 +23,7 @@ const STEPS: Record<string, React.ComponentType> = {
   akshara: AksharaStep, special_pop: SpecialPopStep, special_docs: SpecialDocsStep,
   tofes100: Tofes100Step, independent: IndependentStep,
   active_claim: ActiveClaimStep, exhausted_days: ExhaustedDaysStep, klavia: KlaviaStep,
+  under40_returning: Under40ReturningStep, new_claim_q: NewClaimStep,
   result: ChalatResultView,
 };
 const TOTAL = 8;

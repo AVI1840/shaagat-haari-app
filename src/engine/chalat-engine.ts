@@ -28,6 +28,8 @@ export interface ChalatInput {
   exhausted_all_days: boolean;
   had_im_klavia: boolean;
   is_new_claim: boolean;
+  is_under40_returning: boolean;
+  filed_new_claim: boolean;
 }
 
 export interface ReliefItem { id: string; title: string; desc: string; ref: string; }
@@ -76,69 +78,45 @@ export function evaluateChalat(input: ChalatInput): ChalatResult {
   const chalatDays = daysBetween(input.chalat_start, endDate);
   const startInPeriod = inPeriod(input.chalat_start);
 
-  // === ACTIVE CLAIM: existing claim still running ===
-  if (input.has_active_claim && !input.exhausted_all_days) {
-    // Has active claim, hasn't exhausted days → just continue
+  // === ACTIVE CLAIM: approved in last year → continue existing ===
+  if (input.has_active_claim) {
     return {
       eligible: true, status: "continue_existing",
-      headline: "ניתן להמשיך לקבל דמי אבטלה במסגרת התביעה הקיימת",
-      explanation: "יש לך תביעת אבטלה פעילה וטרם ניצלת את מלוא ימי הזכאות. ניתן להמשיך לקבל דמי אבטלה.",
+      headline: "הנך זכאי/ת להמשיך לקבל דמי אבטלה במסגרת התביעה הקיימת",
+      explanation: "אושרה לך תביעת אבטלה בשנה האחרונה. ניתן להמשיך לקבל דמי אבטלה.",
       reliefs: [{
         id: "R8_CONTINUE", title: "המשך תשלום למובטל עם תביעה בתוקף",
-        desc: "מובטל עם תביעה פעילה שטרם ניצל את מלוא ימיו ממשיך לקבל דמי אבטלה.",
+        desc: "מובטל עם תביעה פעילה ממשיך לקבל דמי אבטלה.",
         ref: "סעיף 7 בחוזר"
       }],
       docs: [], clerk_notes: [], warnings: [],
       steps: [
         { n: 1, action: "ודא/י שהנך רשום/ה בשירות התעסוקה", detail: "חובה להמשיך להתייצב.", link: "https://www.taasuka.gov.il" },
-        { n: 2, action: "ודא/י שהמעסיק הגיש טופס 100", detail: "נדרש לעדכון תקופת החל\"ת.", },
+        { n: 2, action: "ודא/י שהמעסיק הגיש טופס 100", detail: "נדרש לעדכון תקופת החל\"ת." },
       ],
       calc: { akshara_threshold: 0, akshara_actual: input.akshara_months, chalat_days: chalatDays, chalat_min: 0, waiting_days_waived: true, vacation_waived: true, independent_method: null, returning_extension: false }
     };
   }
 
-  // === ACTIVE CLAIM + EXHAUSTED + KLAVIA ===
-  if (input.has_active_claim && input.exhausted_all_days && input.had_im_klavia) {
+  // === UNDER 40 RETURNING: filed new claim ===
+  if (input.is_under40_returning && input.filed_new_claim) {
     return {
       eligible: true, status: "approved",
-      headline: "נמצאה זכאות להארכת תשלום דמי אבטלה",
-      explanation: 'ניצלת את מלוא ימי הזכאות, והוצאת לחל"ת גם במבצע "עם כלביא" (13.6.25-24.6.25) וגם במבצע "שאגת הארי". בהתאם להוראת השעה, תמשיך/י לקבל דמי אבטלה עד תום התקופה הקובעת (14.4.26).',
-      reliefs: [{
-        id: "R7B_DOUBLE", title: 'הארכה לבעלי שתי הפסקות עבודה (עם כלביא + שאגת הארי)',
-        desc: 'מי שפוטר/הוצא לחל"ת גם במבצע עם כלביא וגם בשאגת הארי — ימשיך לקבל דמי אבטלה עד 14.4.26.',
-        ref: "סעיף 7ב בחוזר"
-      }],
-      docs: [],
-      steps: [
-        { n: 1, action: "ודא/י רישום בשירות התעסוקה", detail: "חובה להמשיך להתייצב.", link: "https://www.taasuka.gov.il" },
-        { n: 2, action: "ודא/י שהמעסיק הגיש טופס 100", detail: "נדרש לעדכון.", },
-      ],
-      clerk_notes: [{ type: "instruction", text: "תשלום דמי אבטלה מוגבל בדמי אבטלה מרביים מכוח תיקון החוק." }],
-      warnings: [],
-      calc: { akshara_threshold: 0, akshara_actual: input.akshara_months, chalat_days: chalatDays, chalat_min: 0, waiting_days_waived: true, vacation_waived: true, independent_method: null, returning_extension: true }
-    };
-  }
-
-  // === ACTIVE CLAIM + EXHAUSTED + NO KLAVIA (returning unemployed under 40) ===
-  if (input.has_active_claim && input.exhausted_all_days && !input.had_im_klavia) {
-    return {
-      eligible: true, status: "approved",
-      headline: "נמצאה זכאות להארכת תשלום למובטל חוזר בתביעה חדשה",
-      explanation: 'ניצלת את מלוא ימי הזכאות (180%). בהתאם להוראת השעה, ניתן לקבל דמי אבטלה עד 14.4.26. יש להגיש תביעה חדשה עם תאריך קובע 3.26 או 4.26.',
+      headline: "אנו ממליצים להגיש תביעה חדשה",
+      explanation: "הנך זכאי/ת לדמי אבטלה לפחות עד 14.4.26, ולאחריה בהתאם לניצול ימי הזכאות.",
       reliefs: [{
         id: "R7_RETURNING", title: "הארכת תשלום למובטל חוזר בתביעה חדשה (עד גיל 40)",
-        desc: "ניצלת 180% מימי הזכאות. בהתאם להוראת השעה, תקבל/י דמי אבטלה עד 14.4.26.",
+        desc: "בהתאם להוראת השעה, תקבל/י דמי אבטלה לפחות עד 14.4.26.",
         ref: "סעיף 7 בחוזר"
       }],
       docs: [],
       steps: [
-        { n: 1, action: "הירשם/י בשירות התעסוקה", detail: "חובה להירשם לפני הגשת תביעה חדשה.", link: "https://www.taasuka.gov.il" },
+        { n: 1, action: "הירשם/י בשירות התעסוקה", detail: "חובה להירשם.", link: "https://www.taasuka.gov.il" },
         { n: 2, action: "בקש/י מהמעסיק להגיש טופס 100", detail: "נדרש לתביעה החדשה." },
         { n: 3, action: "הגש/י תביעה חדשה לדמי אבטלה", detail: "באתר ביטוח לאומי, בסניף, או בטלפון *6050.", link: "https://www.btl.gov.il" },
       ],
       clerk_notes: [
-        { type: "instruction", text: "אם נותרו ימי חוק עד 180% — תשלום מוגבל ב-85% מדמי אבטלה מרביים. לאחר ניצול 180% — תשלום מוגבל בדמי אבטלה מרביים." },
-        { type: "warning", text: "הקלה זו רלוונטית למובטלים מתחת לגיל 40 בלבד." },
+        { type: "instruction", text: "אם נותרו ימי חוק עד 180% — תשלום מוגבל ב-85% מדמי אבטלה מרביים. לאחר ניצול 180% — מוגבל בדמי אבטלה מרביים." },
       ],
       warnings: [],
       calc: { akshara_threshold: 0, akshara_actual: input.akshara_months, chalat_days: chalatDays, chalat_min: 0, waiting_days_waived: true, vacation_waived: true, independent_method: null, returning_extension: true }

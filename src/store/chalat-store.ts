@@ -4,7 +4,7 @@ import { evaluateChalat, type ChalatInput, type ChalatResult } from "@/engine/ch
 export type ChalatStep =
   | "welcome" | "dates" | "reason" | "akshara" | "special_pop"
   | "special_docs" | "tofes100" | "independent"
-  | "active_claim" | "exhausted_days" | "klavia"
+  | "active_claim" | "exhausted_days" | "under40_returning" | "new_claim_q" | "klavia"
   | "result";
 
 interface ChalatState {
@@ -51,15 +51,25 @@ function nextStep(cur: ChalatStep, input: Partial<ChalatInput>): ChalatStep {
     case "independent": return "active_claim";
 
     case "active_claim": {
-      if (input.has_active_claim) return "exhausted_days";
+      // "yes" = had active claim approved in last year → continue existing
+      if (input.has_active_claim) return "result";
+      // "no" → ask about under 40 returning
+      return "under40_returning";
+    }
+
+    case "under40_returning": {
+      // under 40 + got unemployment in 4 years?
+      if (input.is_under40_returning) return "new_claim_q";
       return "result";
     }
 
-    case "exhausted_days": {
-      if (input.exhausted_all_days) return "klavia";
-      // Not exhausted → eligible to continue, go to result
+    case "new_claim_q": {
+      // filed new claim for 3/4.26?
+      if (input.filed_new_claim) return "result";
       return "result";
     }
+
+    case "exhausted_days": return "klavia";
 
     case "klavia": return "result";
 
@@ -89,6 +99,8 @@ const defaults: Partial<ChalatInput> = {
   exhausted_all_days: false,
   had_im_klavia: false,
   is_new_claim: true,
+  is_under40_returning: false,
+  filed_new_claim: false,
 };
 
 export const useChalatStore = create<ChalatState>()((set, get) => ({
@@ -141,6 +153,8 @@ export const useChalatStore = create<ChalatState>()((set, get) => ({
       exhausted_all_days: input.exhausted_all_days || false,
       had_im_klavia: input.had_im_klavia || false,
       is_new_claim: input.is_new_claim ?? true,
+      is_under40_returning: input.is_under40_returning || false,
+      filed_new_claim: input.filed_new_claim || false,
     };
     set({ result: evaluateChalat(full) });
   },

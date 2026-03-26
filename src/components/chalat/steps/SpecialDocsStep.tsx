@@ -6,7 +6,7 @@ export function SpecialDocsStep() {
   const { input, next, mode } = useChalatStore();
   const items: string[] = [];
   if (input.is_evacuee) items.push("אישור מהרשות המקומית שבתחומה הבית ממנו התפנית.");
-  if (input.is_spouse_reserve_120) items.push("אישור ממשרד הביטחון על 120+ ימי מילואים.");
+  if (input.is_spouse_reserve_120) items.push("הנתונים קיימים במערכות ביטוח לאומי.");
   if (input.is_spouse_wounded) items.push("אישור ממשרד הביטחון או נתונים ממערכות ביטוח לאומי.");
   if (input.is_disability_tax_exempt) items.push("אישור פטור ממס מטעמים רפואיים ממס הכנסה.");
   if (input.is_disability_ni) items.push("הנתונים קיימים במערכות ביטוח לאומי.");
