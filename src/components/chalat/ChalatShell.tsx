@@ -57,7 +57,9 @@ export function ChalatShell({ forceMode }: { forceMode?: "citizen" | "clerk" }) 
         </div>
         <div className="px-4 py-4">
           <div className="max-w-3xl mx-auto flex items-center gap-4">
-            <img src="/btl-logo.svg" alt="סמל המוסד לביטוח לאומי" className="w-11 h-11 shrink-0" width={44} height={44} />
+            <div className="w-11 h-11 bg-white rounded flex items-center justify-center shrink-0" aria-hidden="true">
+              <span className="text-[#0c3058] font-bold text-[11px] leading-tight text-center">ב&quot;ל</span>
+            </div>
             <div>
               <h1 className="text-white text-base sm:text-lg font-bold leading-tight">
                 {isClerk ? "כלי סיוע לפקיד — דמי אבטלה הוראת שעה" : "בדיקת זכאות לדמי אבטלה — הוראת שעה"}

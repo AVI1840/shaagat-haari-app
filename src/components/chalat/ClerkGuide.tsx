@@ -225,7 +225,9 @@ export function ClerkGuide() {
         </div>
         <div className="px-4 py-4">
           <div className="max-w-3xl mx-auto flex items-center gap-4">
-            <img src="/btl-logo.svg" alt="סמל המוסד לביטוח לאומי" className="w-11 h-11 shrink-0" width={44} height={44} />
+            <div className="w-11 h-11 bg-white rounded flex items-center justify-center shrink-0" aria-hidden="true">
+              <span className="text-[#0c3058] font-bold text-[11px] leading-tight text-center">ב&quot;ל</span>
+            </div>
             <div>
               <h1 className="text-white text-base sm:text-lg font-bold leading-tight">כלי סיוע לפקיד — דמי אבטלה הוראת שעה</h1>
               <p className="text-[#8bb8e8] text-xs sm:text-sm mt-0.5">מבצע שאגת הארי | 28.2.26 — 14.4.26</p>
