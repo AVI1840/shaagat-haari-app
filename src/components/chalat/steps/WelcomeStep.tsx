@@ -12,8 +12,8 @@ export function WelcomeStep() {
     <div className="mt-4">
       <div className="bg-white border border-black/10 rounded-lg shadow-[0_2px_8px_rgba(6,77,173,0.08)] p-5 sm:p-6">
         <div className="flex items-center gap-4 mb-4">
+          <img src="/btl-logo.png" alt="המוסד לביטוח לאומי" className="h-14 sm:h-16 w-auto shrink-0" />
           <div>
-            <p className="text-xs text-[#266794] font-medium mb-0.5">המוסד לביטוח לאומי</p>
             <h2 className="text-lg sm:text-xl font-bold text-[#0c3058]">
               בדיקת זכאות לדמי אבטלה
             </h2>
