@@ -78,23 +78,47 @@ export function evaluateChalat(input: ChalatInput): ChalatResult {
   const chalatDays = daysBetween(input.chalat_start, endDate);
   const startInPeriod = inPeriod(input.chalat_start);
 
-  // === ACTIVE CLAIM: approved in last year → continue existing ===
-  if (input.has_active_claim) {
+  // === ACTIVE CLAIM + NOT EXHAUSTED → green continue ===
+  if (input.has_active_claim && !input.exhausted_all_days) {
     return {
       eligible: true, status: "continue_existing",
       headline: "הנך זכאי/ת להמשיך לקבל דמי אבטלה במסגרת התביעה הקיימת",
-      explanation: "אושרה לך תביעת אבטלה בשנה האחרונה. ניתן להמשיך לקבל דמי אבטלה.",
-      reliefs: [{
-        id: "R8_CONTINUE", title: "המשך תשלום למובטל עם תביעה בתוקף",
-        desc: "מובטל עם תביעה פעילה ממשיך לקבל דמי אבטלה.",
-        ref: "סעיף 7 בחוזר"
-      }],
+      explanation: "אושרה לך תביעת אבטלה בשנה האחרונה וטרם ניצלת את מלוא ימי הזכאות. ניתן להמשיך לקבל.",
+      reliefs: [{ id: "R8_CONTINUE", title: "המשך תשלום למובטל עם תביעה בתוקף", desc: "ממשיך/ה לקבל דמי אבטלה.", ref: "סעיף 7 בחוזר" }],
       docs: [], clerk_notes: [], warnings: [],
       steps: [
-        { n: 1, action: "ודא/י שהנך רשום/ה בשירות התעסוקה", detail: "חובה להמשיך להתייצב.", link: "https://www.taasuka.gov.il" },
-        { n: 2, action: "ודא/י שהמעסיק הגיש טופס 100", detail: "נדרש לעדכון תקופת החל\"ת." },
+        { n: 1, action: "ודא/י רישום בשירות התעסוקה", detail: "חובה להמשיך להתייצב.", link: "https://www.taasuka.gov.il" },
+        { n: 2, action: "ודא/י שהמעסיק הגיש טופס 100", detail: "נדרש לעדכון." },
       ],
       calc: { akshara_threshold: 0, akshara_actual: input.akshara_months, chalat_days: chalatDays, chalat_min: 0, waiting_days_waived: true, vacation_waived: true, independent_method: null, returning_extension: false }
+    };
+  }
+
+  // === ACTIVE CLAIM + EXHAUSTED + KLAVIA → green extension ===
+  if (input.has_active_claim && input.exhausted_all_days && input.had_im_klavia) {
+    return {
+      eligible: true, status: "approved",
+      headline: "נמצאה זכאות להארכת תשלום דמי אבטלה עד 14.4.26",
+      explanation: 'ניצלת את מלוא ימי הזכאות, והוצאת לחל"ת גם במבצע "עם כלביא" וגם במבצע "שאגת הארי". בהתאם להוראת השעה, תמשיך/י לקבל דמי אבטלה עד תום התקופה הקובעת (14.4.26).',
+      reliefs: [{ id: "R7B_DOUBLE", title: "הארכה — שתי הפסקות עבודה", desc: "זכאי/ת להמשך תשלום עד 14.4.26.", ref: "סעיף 7ב בחוזר" }],
+      docs: [], clerk_notes: [{ type: "instruction", text: "תשלום מוגבל בדמי אבטלה מרביים מכוח תיקון החוק." }], warnings: [],
+      steps: [
+        { n: 1, action: "ודא/י רישום בשירות התעסוקה", detail: "חובה.", link: "https://www.taasuka.gov.il" },
+        { n: 2, action: "ודא/י שהמעסיק הגיש טופס 100", detail: "נדרש לעדכון." },
+      ],
+      calc: { akshara_threshold: 0, akshara_actual: input.akshara_months, chalat_days: chalatDays, chalat_min: 0, waiting_days_waived: true, vacation_waived: true, independent_method: null, returning_extension: true }
+    };
+  }
+
+  // === ACTIVE CLAIM + EXHAUSTED + NO KLAVIA → denied ===
+  if (input.has_active_claim && input.exhausted_all_days && !input.had_im_klavia) {
+    return {
+      eligible: false, status: "denied",
+      headline: "לא נמצאה זכאות להארכת תשלום",
+      explanation: 'ניצלת את מלוא ימי הזכאות ולא הוצאת לחל"ת במבצע "עם כלביא" (13.6.25-24.6.25). לכן, לא ניתן להאריך את התשלום במסגרת הוראת השעה.',
+      reliefs: [], docs: [], clerk_notes: [], warnings: [],
+      steps: [{ n: 1, action: "פנה/י לסניף ביטוח לאומי לבירור", detail: "ניתן גם להתקשר ל-*6050.", link: "https://www.btl.gov.il" }],
+      calc: { akshara_threshold: 0, akshara_actual: input.akshara_months, chalat_days: chalatDays, chalat_min: 0, waiting_days_waived: false, vacation_waived: false, independent_method: null, returning_extension: false }
     };
   }
 

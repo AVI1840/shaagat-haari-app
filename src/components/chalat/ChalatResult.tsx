@@ -3,6 +3,7 @@ import { useChalatStore } from "@/store/chalat-store";
 
 const ST: Record<string, { bg: string; border: string; tc: string; label: string }> = {
   approved: { bg: "bg-[#eaf4ee]", border: "border-[#a3d4b5]", tc: "text-[#1a6b3c]", label: "נמצאה זכאות אפשרית" },
+  continue_existing: { bg: "bg-[#eaf4ee]", border: "border-[#a3d4b5]", tc: "text-[#1a6b3c]", label: "נמצאה זכאות" },
   denied: { bg: "bg-[#fdf0f0]", border: "border-[#e8b4b4]", tc: "text-[#8b1a1a]", label: "לא נמצאה זכאות" },
   pending_docs: { bg: "bg-[#fef8ec]", border: "border-[#f0d080]", tc: "text-[#7a4f00]", label: "ממתין למסמכים" },
   pending_review: { bg: "bg-[#e8f3ff]", border: "border-[#0368b0]/30", tc: "text-[#0c3058]", label: "נדרשת בדיקה" },
