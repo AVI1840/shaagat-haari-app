@@ -3,12 +3,11 @@ import { useChalatStore } from "@/store/chalat-store";
 
 export function WelcomeStep() {
   const goTo = useChalatStore((s) => s.goTo);
-  const setMode = useChalatStore((s) => s.setMode);
   const reset = useChalatStore((s) => s.reset);
+  const mode = useChalatStore((s) => s.mode);
 
-  const start = (mode: "citizen" | "clerk") => {
+  const start = () => {
     reset();
-    setMode(mode);
     goTo("dates");
   };
 
@@ -38,15 +37,10 @@ export function WelcomeStep() {
           </p>
         </div>
         <div className="space-y-3">
-          <button onClick={() => start("citizen")} type="button"
+          <button onClick={() => start()} type="button"
             className="w-full bg-[#0368b0] text-[#f5f9ff] rounded-lg py-3 px-6 text-base font-semibold min-h-[48px] hover:bg-[#025a8f] cursor-pointer focus:ring-2 focus:ring-[#0068f5] focus:ring-offset-2 transition-colors"
-            aria-label="התחל בדיקה כאזרח">
-            התחל בדיקה
-          </button>
-          <button onClick={() => start("clerk")} type="button"
-            className="w-full bg-white border-2 border-[#0368b0] text-[#0368b0] rounded-lg py-3 px-6 text-base font-semibold min-h-[48px] hover:bg-[#e8f3ff] cursor-pointer focus:ring-2 focus:ring-[#0068f5] focus:ring-offset-2 transition-colors"
-            aria-label="כניסה לממשק פקיד תביעות">
-            ממשק פקיד תביעות
+            aria-label="התחל בדיקה">
+            {mode === "clerk" ? "התחל בדיקת תביעה" : "התחל בדיקה"}
           </button>
         </div>
       </div>
