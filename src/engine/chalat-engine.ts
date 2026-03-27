@@ -197,7 +197,7 @@ export function evaluateChalat(input: ChalatInput): ChalatResult {
   if (aksharaThreshold === 3) {
     reliefs.push({ id: "R3_AK3", title: "קיצור תקופת אכשרה ל-3 חודשים", desc: "כאוכלוסייה מיוחדת, נדרשים 3 חודשי אכשרה בלבד.", ref: "סעיף 3 בחוזר" });
     if (input.is_evacuee) docs.push({ id: "D_EVAC", label: "אישור מהרשות המקומית על פינוי", status: "required", how: "פנה/י לרשות המקומית שבתחומה הבית ממנו התפנית." });
-    if (input.is_spouse_reserve_120) docs.push({ id: "D_SP120", label: "אישור ממשרד הביטחון על 120+ ימי מילואים", status: "required", how: "פנה/י למשרד הביטחון." });
+    if (input.is_spouse_reserve_120) docs.push({ id: "D_SP120", label: "נתוני שירות מילואים", status: "received", how: "הנתונים קיימים במערכות ביטוח לאומי." });
     if (input.is_spouse_wounded) docs.push({ id: "D_SPW", label: "אישור ממשרד הביטחון או נתוני ביטוח לאומי", status: "required", how: "אישור ממשרד הביטחון." });
     if (input.is_disability_tax_exempt) docs.push({ id: "D_TAX", label: "אישור פטור ממס מטעמים רפואיים", status: "required", how: "אישור ממס הכנסה." });
     clerk_notes.push({ type: "system", text: "המערכת לא ערוכה לתיקון חוק זה. יש להזין תקופת עבודה נוספת עד 6 חודשים במסך 162 תחת תיק ניכויים 03. יש להזין את השכר של 3 החודשים גם בתיק 03." });
