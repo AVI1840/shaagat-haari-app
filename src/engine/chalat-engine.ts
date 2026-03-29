@@ -74,7 +74,7 @@ export function evaluateChalat(input: ChalatInput): ChalatResult {
   const clerk_notes: ClerkNote[] = [];
   const warnings: string[] = [];
 
-  const endDate = input.chalat_end || "2026-04-14";
+  const endDate = input.chalat_end || new Date().toISOString().split("T")[0];
   const chalatDays = daysBetween(input.chalat_start, endDate);
   const startInPeriod = inPeriod(input.chalat_start);
 

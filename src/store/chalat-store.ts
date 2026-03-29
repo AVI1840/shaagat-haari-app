@@ -29,7 +29,7 @@ function nextStep(cur: ChalatStep, inp: Partial<ChalatInput>): ChalatStep {
     case "welcome": return "dates";
     case "dates": {
       const s = inp.chalat_start;
-      const e = inp.chalat_end || "2026-04-14";
+      const e = inp.chalat_end || new Date().toISOString().split("T")[0];
       if (s) {
         const d = Math.round((new Date(e).getTime() - new Date(s).getTime()) / 86400000);
         if (d < 10) return "result";
