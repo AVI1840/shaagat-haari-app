@@ -236,7 +236,7 @@ export function evaluateChalat(input: ChalatInput): ChalatResult {
     docs.push({ id: "D_T100", label: "טופס 100 מהמעסיק", status: "received", how: "התקבל מהמעסיק." });
     clerk_notes.push({ type: "instruction", text: "טופס 100 התקבל. אין לדרוש אישור מעסיק בכתב נוסף." });
   } else if (input.employer_confirmation) {
-    docs.push({ id: "D_T100", label: "טופס 100 מהמעסיק", status: "required", how: "טרם התקבל. קיים אישור מעסיק בכתב." });
+    docs.push({ id: "D_T100", label: "אישור מעסיק בכתב", status: "received", how: "יש לצרף את אישור המעסיק לתביעה." });
     clerk_notes.push({ type: "instruction", text: 'טופס 100 לא התקבל אך יש אישור מעסיק בכתב. יש להזין תאריכים מהאישור במסך 162. שימו לב: יש להזין יום עבודה אחרון בפועל טרם ההוצאה לחל"ת ותאריך עבודה ראשון.' });
     clerk_notes.push({ type: "warning", text: "אם יש שוני בין דיווח טופס 100 לדיווח ידני — יש להזין במסך 162 תאריכים לפי הדיווח האחרון שהגיע." });
   } else {
@@ -252,7 +252,10 @@ export function evaluateChalat(input: ChalatInput): ChalatResult {
   let sn = 1;
   steps.push({ n: sn++, action: "הירשם/י בשירות התעסוקה", detail: "חובה להירשם לפני הגשת תביעה.", link: "https://www.taasuka.gov.il" });
   if (!input.tofes_100_received && !input.employer_confirmation) {
-    steps.push({ n: sn++, action: "בקש/י מהמעסיק להגיש טופס 100", detail: "ללא טופס 100 לא ניתן לעבד את התביעה." });
+    steps.push({ n: sn++, action: "בקש/י מהמעסיק להגיש טופס 100", detail: "ללא טופס 100 או אישור מעסיק בכתב לא ניתן לעבד את התביעה." });
+  }
+  if (!input.tofes_100_received && input.employer_confirmation) {
+    steps.push({ n: sn++, action: "צרף/י את אישור המעסיק בכתב לתביעה", detail: "האישור ישמש במקום טופס 100." });
   }
   if (input.has_independent_income && !input.has_bl_1510) {
     steps.push({ n: sn++, action: 'הכן/י טופס בל/1510 עם אישור רו"ח', detail: "נדרש לחישוב ניכוי הכנסה עצמאית." });
