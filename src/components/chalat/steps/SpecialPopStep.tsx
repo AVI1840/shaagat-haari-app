@@ -10,7 +10,7 @@ export function SpecialPopStep() {
       question="האם אתה שייך לאחת מהאוכלוסיות הבאות?"
       hint="אוכלוסיות אלו זכאיות לסף אכשרה מופחת של 3 חודשים בלבד. סמן/י את כל מה שרלוונטי."
     >
-      <Check id="dis_ni" label="מקבל/ת גמלת נכות כללית מביטוח לאומי" checked={!!input.is_disability_ni} onChange={(v) => setField("is_disability_ni", v)} />
+      <Check id="dis_ni" label="אדם עם מוגבלות (נכות כללית / נכות מעבודה מביטוח לאומי / נכה צה&quot;ל)" checked={!!input.is_disability_ni} onChange={(v) => setField("is_disability_ni", v)} />
       <Check id="dis_tax" label="בעל/ת פטור ממס מטעמים רפואיים" checked={!!input.is_disability_tax_exempt} onChange={(v) => setField("is_disability_tax_exempt", v)} />
       <Check id="evac" label="מפונה מביתי במהלך מלחמת שאגת הארי" checked={!!input.is_evacuee} onChange={(v) => setField("is_evacuee", v)} />
       <Check id="sp120" label="בן/בת זוג של משרת/ת מילואים (90+ ימים בשנה האחרונה)" checked={!!input.is_spouse_reserve_120} onChange={(v) => setField("is_spouse_reserve_120", v)} />
