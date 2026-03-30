@@ -14,7 +14,7 @@ export function SpecialPopStep() {
       <Check id="dis_tax" label="בעל/ת פטור ממס מטעמים רפואיים" checked={!!input.is_disability_tax_exempt} onChange={(v) => setField("is_disability_tax_exempt", v)} />
       <Check id="evac" label="מפונה מביתי במהלך מלחמת שאגת הארי" checked={!!input.is_evacuee} onChange={(v) => setField("is_evacuee", v)} />
       <Check id="sp120" label="בן/בת זוג של משרת/ת מילואים (90+ ימים בשנה האחרונה)" checked={!!input.is_spouse_reserve_120} onChange={(v) => setField("is_spouse_reserve_120", v)} />
-      <Check id="spw" label="בן/בת זוג של פצוע/ה ובן/בת זוגם" checked={!!input.is_spouse_wounded} onChange={(v) => setField("is_spouse_wounded", v)} />
+      <Check id="spw" label="פצועים ובני זוגם" checked={!!input.is_spouse_wounded} onChange={(v) => setField("is_spouse_wounded", v)} />
       <Check id="sold" label="חייל/ת משוחרר/ת" checked={!!input.is_discharged_soldier} onChange={(v) => setField("is_discharged_soldier", v)} />
       <Btn onClick={next} label="המשך" />
     </Section>
